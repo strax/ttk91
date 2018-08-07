@@ -1,0 +1,6 @@
+[package]
+name = "ttk91"
+version = "0.1.0"
+authors = ["Sami Kukkonen <sami@samikukkonen.fi>"]
+
+[dependencies]

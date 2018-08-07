@@ -1,0 +1,20 @@
+; sum - laske annettuja lukuja yhteen kunnes nolla annettu
+
+Luku	DC 0	; nykyinen luku
+Summa	DC 0  ; nykyinen summa
+
+Sum   IN    R1, =KBD	; ohjelma alkaa käskystä 0
+      STORE R1, Luku
+      JZER  R1, Done    ; luvut loppu?
+	
+      LOAD  R1, Summa   ; Summa <- Summa+Luku
+      ADD   R1, Luku	
+      STORE R1, Summa   ; summa muuttujassa, ei rekisterissa?
+
+      JUMP  Sum
+
+Done  LOAD  R1, Summa   ; tulosta summa ja lopeta
+      OUT   R1, =CRT
+
+      SVC   SP, =HALT
+	
