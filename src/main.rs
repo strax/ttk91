@@ -32,5 +32,10 @@ fn run(f: &mut File) -> io::Result<()> {
         eprintln!("TTK91 header not detected");
         process::exit(1)
     }
+    // Header is valid so interpret the file
+    let mut data: Vec<u8> = vec![];
+    f.read_to_end(&mut data)?;
+    let mut vm = ttk91::vm::State::new();
+    ttk91::vm::eval(&mut vm, &data)
     Ok(())
 }
