@@ -1,11 +1,16 @@
 use byteorder::{BigEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 use std::io::{Cursor, Read, Result};
+use b91::*;
 
-mod ops;
+pub mod ops;
+pub mod instruction;
+pub mod mmu;
+
+use self::mmu::MMU;
 
 #[derive(Debug)]
-pub struct State {
+pub struct RegisterFile {
   // Registers R0-R7
   pub r0: u32,
   pub r1: u32,
@@ -29,9 +34,9 @@ pub struct State {
   pub sr: u32,
 }
 
-impl State {
-  pub fn new() -> State {
-    State {
+impl RegisterFile {
+  pub fn new() -> RegisterFile {
+    RegisterFile {
       r0: 0,
       r1: 0,
       r2: 0,
@@ -48,7 +53,7 @@ impl State {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, FromPrimitive, Eq, PartialEq)]
 #[repr(u8)]
 pub enum AddressingMode {
   Immediate = 0b00,
@@ -57,22 +62,39 @@ pub enum AddressingMode {
 }
 
 #[derive(Debug)]
-pub struct Instruction {
-  oper: ops::Op,
-  rj: u8,
-  m: AddressingMode,
-  ri: u8,
-  addr: u16,
+pub struct Machine {
+  registers: Box<RegisterFile>,
+  mmu: MMU
 }
 
-pub fn next_op(rdr: &mut (Read)) -> Result<ops::Op> {
-  let mut buf = [0u8; 4];
-  rdr.read(&mut buf)?;
-  let mut cursor = Cursor::new(&buf);
-  let oper = cursor.read_u8()?;
-  println!("Read operation code: {:08b}", oper);
-  Ok(FromPrimitive::from_u8(oper).expect(&format!(
-    "Byte {:X?} ({:08b}) is not a valid opcode",
-    oper, oper
-  )))
+impl Machine {
+  pub fn new(memory_size: usize) -> Machine {
+    let mmu = MMU::new(memory_size);
+    let registers = Box::new(RegisterFile::new());
+    Machine { mmu, registers }
+  }
+
+  pub fn load_object_module(&mut self, object_module: &ObjectModule) -> () {
+    // Load instructions into memory
+    let CodeBlock {start, end, instructions} = &object_module.code;
+    self.mmu.as_slice()[*start..(*end + 1)].copy_from_slice(instructions);
+    // Init FP
+    self.registers.fp = object_module.code.end as u32;
+
+    // Load data into memory
+    let DataBlock { start, end, data } = &object_module.data;
+    self.mmu.as_slice()[*start..(*end + 1)].copy_from_slice(data);
+    // Init SP
+    self.registers.sp = object_module.data.end as u32;
+  }
+
+  pub fn run(&mut self) -> () {
+    let mut pc = 0;
+    while pc <= self.registers.fp {
+      // Fetch instruction
+      let instruction = instruction::Instruction::from_u32(self.mmu.read(pc as usize));
+      println!("{:?}", instruction);
+      pc += 1;
+    }
+  }
 }

@@ -1,4 +1,4 @@
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, FromPrimitive, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Op {
   NOP = 0x00,
@@ -7,7 +7,7 @@ pub enum Op {
   IN = 0x03,
   OUT = 0x04,
 
-  Add = 0x11,
+  ADD = 0x11,
   SUB = 0x12,
   MUL = 0x13,
   DIV = 0x14,
