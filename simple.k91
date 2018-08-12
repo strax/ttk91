@@ -1,0 +1,7 @@
+x DC 5005
+y DS 4
+
+Main NOP
+NOP
+ADD R1, =5
+SVC SP, =HALT

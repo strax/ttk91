@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, FromPrimitive)]
 #[repr(u8)]
 pub enum Op {
   NOP = 0x00,

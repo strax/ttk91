@@ -1,11 +1,18 @@
+extern crate byteorder;
+#[macro_use]
+extern crate num_derive;
+extern crate num_traits;
+
 use std::env;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+use std::io::{Cursor, SeekFrom};
 use std::path::Path;
 use std::process;
 
-mod ttk91;
+mod b91;
+mod vm;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -25,17 +32,14 @@ fn main() -> io::Result<()> {
 }
 
 fn run(f: &mut File) -> io::Result<()> {
-    // Read first 9 bytes to validate input
-    let mut header = [0; 9];
-    f.read(&mut header)?;
-    if !ttk91::vm::validate_header(&header) {
-        eprintln!("TTK91 header not detected");
-        process::exit(1)
-    }
-    // Header is valid so interpret the file
+    // Read program to memory
     let mut data: Vec<u8> = vec![];
     f.read_to_end(&mut data)?;
-    let mut vm = ttk91::vm::State::new();
-    ttk91::vm::eval(&mut vm, &data)
+    let mut memory = [0u32; 32768];
+    // let op = ttk91::vm::next_op(&mut cursor)?;
+    // ttk91::vm::eval(&mut vm, &data)
+    // println!("{:?}", op);
+    let object_module = b91::parser::parse(&data);
+    println!("{:?}", object_module);
     Ok(())
 }

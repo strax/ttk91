@@ -1,10 +1,8 @@
+use byteorder::{BigEndian, ReadBytesExt};
+use num_traits::FromPrimitive;
+use std::io::{Cursor, Read, Result};
+
 mod ops;
-
-const HEADER: &[u8] = b"___b91___";
-
-pub fn validate_header(input: &[u8]) -> bool {
-  &input[0..9] == HEADER
-}
 
 #[derive(Debug)]
 pub struct State {
@@ -65,4 +63,16 @@ pub struct Instruction {
   m: AddressingMode,
   ri: u8,
   addr: u16,
+}
+
+pub fn next_op(rdr: &mut (Read)) -> Result<ops::Op> {
+  let mut buf = [0u8; 4];
+  rdr.read(&mut buf)?;
+  let mut cursor = Cursor::new(&buf);
+  let oper = cursor.read_u8()?;
+  println!("Read operation code: {:08b}", oper);
+  Ok(FromPrimitive::from_u8(oper).expect(&format!(
+    "Byte {:X?} ({:08b}) is not a valid opcode",
+    oper, oper
+  )))
 }
