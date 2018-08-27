@@ -1,59 +1,23 @@
+use b91::*;
 use byteorder::{BigEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
 use std::io::{Cursor, Read, Result};
-use b91::*;
+use std::process;
 
-pub mod ops;
+pub mod alu;
 pub mod instruction;
 pub mod mmu;
+pub mod ops;
+pub mod register_file;
+pub mod supervisor;
 
-use self::mmu::MMU;
+use self::instruction::*;
+use self::mmu::*;
+use self::ops::*;
+use self::register_file::*;
+use self::supervisor::*;
 
-#[derive(Debug)]
-pub struct RegisterFile {
-  // Registers R0-R7
-  pub r0: u32,
-  pub r1: u32,
-  pub r2: u32,
-  pub r3: u32,
-  pub r4: u32,
-  pub r5: u32,
-  // Stack Pointer = R6
-  pub sp: u32,
-  // Frame Pointer = R7
-  pub fp: u32,
-
-  // Control unit registers
-  // Program Counter
-  pub pc: u32,
-  // Instruction Register
-  pub ir: u32,
-  // Temporary Register
-  pub tr: u32,
-  // State Register
-  pub sr: u32,
-}
-
-impl RegisterFile {
-  pub fn new() -> RegisterFile {
-    RegisterFile {
-      r0: 0,
-      r1: 0,
-      r2: 0,
-      r3: 0,
-      r4: 0,
-      r5: 0,
-      sp: 0,
-      fp: 0,
-      pc: 0,
-      ir: 0,
-      tr: 0,
-      sr: 0,
-    }
-  }
-}
-
-#[derive(Debug, FromPrimitive, Eq, PartialEq)]
+#[derive(Debug, FromPrimitive, Eq, PartialEq, Copy, Clone)]
 #[repr(u8)]
 pub enum AddressingMode {
   Immediate = 0b00,
@@ -64,7 +28,7 @@ pub enum AddressingMode {
 #[derive(Debug)]
 pub struct Machine {
   registers: Box<RegisterFile>,
-  mmu: MMU
+  mmu: MMU,
 }
 
 impl Machine {
@@ -76,7 +40,11 @@ impl Machine {
 
   pub fn load_object_module(&mut self, object_module: &ObjectModule) -> () {
     // Load instructions into memory
-    let CodeBlock {start, end, instructions} = &object_module.code;
+    let CodeBlock {
+      start,
+      end,
+      instructions,
+    } = &object_module.code;
     self.mmu.as_slice()[*start..(*end + 1)].copy_from_slice(instructions);
     // Init FP
     self.registers.fp = object_module.code.end as u32;
@@ -89,12 +57,49 @@ impl Machine {
   }
 
   pub fn run(&mut self) -> () {
-    let mut pc = 0;
-    while pc <= self.registers.fp {
+    while self.registers.pc <= self.registers.fp {
+      println!("{:?} {:?}", self.registers.pc, self.registers);
       // Fetch instruction
-      let instruction = instruction::Instruction::from_u32(self.mmu.read(pc as usize));
-      println!("{:?}", instruction);
-      pc += 1;
+      let instruction = Instruction::from_u32(self.mmu.read(self.registers.pc as usize));
+      self.execute(&instruction);
+      self.registers.pc += 1;
+    }
+  }
+
+  fn execute(&mut self, instruction: &Instruction) -> () {
+    match instruction.opcode {
+      Op::NOP => (),
+      Op::ADD => {
+        let b = self.fetch_value(&instruction);
+        let mut a = &mut (self.registers[instruction.rj]);
+        println!("ALU: ADD {:p} {}", a, b);
+        alu::add(a, b)
+      }
+      Op::SVC => {
+        let service = Service::from_u32(self.fetch_value(instruction)).unwrap();
+        match service {
+          Service::Halt => {
+            println!("Process halted");
+            process::exit(0)
+          }
+          _ => panic!("Unknown supervisor call"),
+        }
+      }
+      _ => panic!(format!("No handler for opcode {:?}", instruction.opcode)),
+    }
+  }
+
+  fn fetch_value(&mut self, instruction: &Instruction) -> u32 {
+    let base = self.registers[instruction.ri];
+    let offset = instruction.addr as u32;
+    let ea = base + offset;
+    match instruction.m {
+      AddressingMode::Immediate => ea,
+      AddressingMode::Direct => self.mmu.read(ea as usize),
+      AddressingMode::Indirect => {
+        let ea = self.mmu.read(ea as usize);
+        self.mmu.read(ea as usize)
+      }
     }
   }
 }

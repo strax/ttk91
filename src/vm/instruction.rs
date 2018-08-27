@@ -2,13 +2,13 @@ use vm::ops::Op;
 use vm::AddressingMode;
 use num_traits::FromPrimitive;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Instruction {
-  opcode: Op,
-  rj: u8,
-  m: AddressingMode,
-  ri: u8,
-  addr: u16,
+  pub opcode: Op,
+  pub rj: u8,
+  pub m: AddressingMode,
+  pub ri: u8,
+  pub addr: u16,
 }
 
 impl Instruction {
