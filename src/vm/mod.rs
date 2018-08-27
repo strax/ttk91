@@ -6,12 +6,14 @@ use std::process;
 
 pub mod alu;
 pub mod instruction;
+pub mod io;
 pub mod mmu;
 pub mod ops;
 pub mod register_file;
 pub mod supervisor;
 
 use self::instruction::*;
+use self::io::*;
 use self::mmu::*;
 use self::ops::*;
 use self::register_file::*;
@@ -58,17 +60,55 @@ impl Machine {
 
   pub fn run(&mut self) -> () {
     while self.registers.pc <= self.registers.fp {
-      println!("{:?} {:?}", self.registers.pc, self.registers);
+      println!("=> {:?}", self.registers);
       // Fetch instruction
       let instruction = Instruction::from_u32(self.mmu.read(self.registers.pc as usize));
-      self.execute(&instruction);
       self.registers.pc += 1;
+      self.execute(&instruction);
     }
   }
 
   fn execute(&mut self, instruction: &Instruction) -> () {
+    println!("{:?} {:?}", self.registers.pc, instruction);
     match instruction.opcode {
       Op::NOP => (),
+      Op::IN => {
+        let device = Device::from_u32(self.fetch_value(instruction)).unwrap();
+        match device {
+          Device::Keyboard => {
+            let value = read_keyboard();
+            let rj = &mut self.registers[instruction.rj];
+            *rj = value;
+          }
+          _ => panic!("Invalid device"),
+        }
+      }
+      Op::STORE => {
+        let source = self.registers[instruction.rj];
+        let destination = self.fetch_value(instruction);
+        self.mmu.write(destination as usize, source);
+      }
+      Op::LOAD => {
+        let x = self.fetch_value(instruction);
+        self.registers[instruction.rj] = x;
+      }
+      Op::OUT => {
+        let device = Device::from_u32(self.fetch_value(instruction)).unwrap();
+        let x = self.registers[instruction.rj];
+        match device {
+          Device::CRT => println!("{:?}", x),
+          _ => panic!("Invalid device"),
+        }
+      }
+      Op::JZER => {
+        let x = self.registers[instruction.rj];
+        if x == 0 {
+          self.registers.pc = self.fetch_value(instruction);
+        }
+      }
+      Op::JUMP => {
+        self.registers.pc = self.registers[instruction.rj];
+      }
       Op::ADD => {
         let b = self.fetch_value(&instruction);
         let mut a = &mut (self.registers[instruction.rj]);
