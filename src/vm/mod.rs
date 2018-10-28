@@ -1,10 +1,7 @@
 use b91::*;
-use byteorder::{BigEndian, ReadBytesExt};
 use num_traits::FromPrimitive;
-use std::io::{Cursor, Read, Result};
 use std::process;
 
-pub mod alu;
 pub mod instruction;
 pub mod io;
 pub mod mmu;
@@ -107,9 +104,24 @@ impl Machine {
         self.registers.pc = self.registers[instruction.rj];
       }
       Op::ADD => {
-        let b = self.fetch_value(&instruction);
-        let mut a = &mut (self.registers[instruction.rj]);
-        alu::add(a, b)
+        let a = self.fetch_value(&instruction);
+        let b = self.registers.get(instruction.rj);
+        self.registers.set(instruction.rj, b + a);
+      }
+      Op::SUB => {
+        let a = self.fetch_value(&instruction);
+        let b = self.registers.get(instruction.rj);
+        self.registers.set(instruction.rj, b - a);
+      }
+      Op::MUL => {
+        let a = self.fetch_value(&instruction);
+        let b = self.registers.get(instruction.rj);
+        self.registers.set(instruction.rj, b * a);
+      }
+      Op::DIV => {
+        let a = self.fetch_value(&instruction);
+        let b = self.registers.get(instruction.rj);
+        self.registers.set(instruction.rj, b / a);
       }
       Op::SVC => {
         let service = Service::from_u32(self.fetch_value(instruction)).unwrap();
