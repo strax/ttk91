@@ -42,6 +42,14 @@ impl RegisterFile {
       sr: 0,
     }
   }
+
+  pub fn set(&mut self, dst: u8, value: u32) {
+    *(&mut self[dst]) = value;
+  }
+
+  pub fn get(&self, src: u8) -> u32 {
+    self[src]
+  }
 }
 
 impl Index<u8> for RegisterFile {

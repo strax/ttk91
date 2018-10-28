@@ -60,7 +60,6 @@ impl Machine {
 
   pub fn run(&mut self) -> () {
     while self.registers.pc <= self.registers.fp {
-      println!("=> {:?}", self.registers);
       // Fetch instruction
       let instruction = Instruction::from_u32(self.mmu.read(self.registers.pc as usize));
       self.registers.pc += 1;
@@ -69,7 +68,6 @@ impl Machine {
   }
 
   fn execute(&mut self, instruction: &Instruction) -> () {
-    println!("{:?} {:?}", self.registers.pc, instruction);
     match instruction.opcode {
       Op::NOP => (),
       Op::IN => {
@@ -77,8 +75,7 @@ impl Machine {
         match device {
           Device::Keyboard => {
             let value = read_keyboard();
-            let rj = &mut self.registers[instruction.rj];
-            *rj = value;
+            self.registers.set(instruction.rj, value);
           }
           _ => panic!("Invalid device"),
         }
@@ -89,8 +86,8 @@ impl Machine {
         self.mmu.write(destination as usize, source);
       }
       Op::LOAD => {
-        let x = self.fetch_value(instruction);
-        self.registers[instruction.rj] = x;
+        let value = self.fetch_value(instruction);
+        self.registers.set(instruction.rj, value);
       }
       Op::OUT => {
         let device = Device::from_u32(self.fetch_value(instruction)).unwrap();
@@ -112,7 +109,6 @@ impl Machine {
       Op::ADD => {
         let b = self.fetch_value(&instruction);
         let mut a = &mut (self.registers[instruction.rj]);
-        println!("ALU: ADD {:p} {}", a, b);
         alu::add(a, b)
       }
       Op::SVC => {

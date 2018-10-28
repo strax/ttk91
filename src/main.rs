@@ -40,10 +40,8 @@ fn run(f: &mut File) -> io::Result<()> {
     // ttk91::vm::eval(&mut vm, &data)
     // println!("{:?}", op);
     let object_module = b91::parser::parse(&data);
-    println!("{:?}", object_module);
     let mut machine = vm::Machine::new(100);
     machine.load_object_module(&object_module);
     machine.run();
-    println!("{:?}", machine);
     Ok(())
 }

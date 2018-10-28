@@ -11,5 +11,11 @@ pub fn read_keyboard() -> u32 {
   let mut buf = String::new();
   io::stdin().read_line(&mut buf).unwrap();
   buf.pop();
-  buf.parse().unwrap()
+  return match buf.parse() {
+    Err(_) => {
+      eprintln!("Error: input is not a number");
+      return read_keyboard();
+    }
+    Ok(n) => n,
+  };
 }
