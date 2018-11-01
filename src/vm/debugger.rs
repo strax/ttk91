@@ -1,3 +1,4 @@
+use b91::SymbolTable;
 use io;
 use prettytable::{Cell, Row, Table};
 use process;
@@ -8,6 +9,7 @@ use vm::Machine;
 
 pub struct Debugger<'a> {
   machine: &'a mut Machine,
+  symbol_table: &'a SymbolTable,
 }
 
 enum Command {
@@ -15,24 +17,33 @@ enum Command {
   Exit(),
   Regs(),
   Ins(),
+  Syms(),
   Help(),
+  Var(String),
 }
 
 impl<'a> Debugger<'a> {
-  pub fn new(machine: &'a mut Machine) -> Debugger<'a> {
-    Debugger { machine }
+  pub fn new(machine: &'a mut Machine, symbol_table: &'a SymbolTable) -> Debugger<'a> {
+    Debugger {
+      machine,
+      symbol_table,
+    }
   }
 
   fn read_command(&self) -> Option<Command> {
     eprint!("{}> ", self.machine.registers.pc);
     let mut buf = String::new();
     io::stdin().read_line(&mut buf).unwrap();
-    buf.pop();
-    match buf.as_ref() {
+    let mut segments = buf.split_whitespace();
+    let command = segments.next().unwrap();
+    let args = segments.next();
+    match command {
       "continue" | "c" | "next" | "n" => Some(Command::Next()),
       "exit" | "quit" | "q" => Some(Command::Exit()),
+      "var" | "v" => args.map(|x| Command::Var(String::from(x))),
       "registers" | "reg" | "r" => Some(Command::Regs()),
       "instruction" | "ins" | "i" => Some(Command::Ins()),
+      "symbols" | "sym" | "s" => Some(Command::Syms()),
       "help" => Some(Command::Help()),
       _ => None,
     }
@@ -60,6 +71,25 @@ impl<'a> Debugger<'a> {
     table.add_row(row!["SR", format!("{:#010x}", self.machine.registers.sr)]);
     // Print the table to stdout
     table.printstd();
+  }
+
+  fn print_symbol_table(&self) -> () {
+    let mut table = Table::new();
+    let symbol_table = self.symbol_table;
+    for (key, value) in symbol_table {
+      table.add_row(row![key, format!("{:#010x}", value)]);
+    }
+    table.printstd();
+  }
+
+  fn print_symbol_value(&mut self, sym: String) -> () {
+    match self.symbol_table.get(&sym) {
+      None => eprintln!("Symbol {} not found", sym),
+      Some(address) => {
+        let value = self.machine.mmu.read(*address);
+        println!("{:#010x}: {:#010x}", address, value);
+      }
+    }
   }
 
   fn print_instruction(&mut self) -> () {
@@ -90,6 +120,8 @@ impl<'a> Hypervisor for Debugger<'a> {
         Command::Exit() => process::exit(0),
         Command::Regs() => self.print_registers(),
         Command::Ins() => self.print_instruction(),
+        Command::Syms() => self.print_symbol_table(),
+        Command::Var(sym) => self.print_symbol_value(sym),
         Command::Help() => self.print_help(),
       }
     }
