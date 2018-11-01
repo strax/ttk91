@@ -46,7 +46,7 @@ fn run(f: &mut File) -> io::Result<()> {
     let object_module = b91::parser::parse(&data);
     let mut machine = vm::Machine::new(100);
     machine.load_object_module(&object_module);
-    let mut hypervisor = Debugger::new(&mut machine);
+    let mut hypervisor = Debugger::new(&mut machine, &object_module.symbol_table);
     hypervisor.run();
     Ok(())
 }

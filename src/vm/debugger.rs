@@ -1,3 +1,4 @@
+use b91::SymbolTable;
 use io;
 use prettytable::{Cell, Row, Table};
 use process;
@@ -8,6 +9,7 @@ use vm::Machine;
 
 pub struct Debugger<'a> {
   machine: &'a mut Machine,
+  symbol_table: &'a SymbolTable,
 }
 
 enum Command {
@@ -15,12 +17,16 @@ enum Command {
   Exit(),
   Regs(),
   Ins(),
+  Syms(),
   Help(),
 }
 
 impl<'a> Debugger<'a> {
-  pub fn new(machine: &'a mut Machine) -> Debugger<'a> {
-    Debugger { machine }
+  pub fn new(machine: &'a mut Machine, symbol_table: &'a SymbolTable) -> Debugger<'a> {
+    Debugger {
+      machine,
+      symbol_table,
+    }
   }
 
   fn read_command(&self) -> Option<Command> {
@@ -33,6 +39,7 @@ impl<'a> Debugger<'a> {
       "exit" | "quit" | "q" => Some(Command::Exit()),
       "registers" | "reg" | "r" => Some(Command::Regs()),
       "instruction" | "ins" | "i" => Some(Command::Ins()),
+      "symbols" | "sym" | "s" => Some(Command::Syms()),
       "help" => Some(Command::Help()),
       _ => None,
     }
@@ -59,6 +66,15 @@ impl<'a> Debugger<'a> {
     table.add_row(row!["TR", format!("{:#010x}", self.machine.registers.tr)]);
     table.add_row(row!["SR", format!("{:#010x}", self.machine.registers.sr)]);
     // Print the table to stdout
+    table.printstd();
+  }
+
+  fn print_symbol_table(&self) -> () {
+    let mut table = Table::new();
+    let symbol_table = self.symbol_table;
+    for (key, value) in symbol_table {
+      table.add_row(row![key, format!("{:#010x}", value)]);
+    }
     table.printstd();
   }
 
@@ -90,6 +106,7 @@ impl<'a> Hypervisor for Debugger<'a> {
         Command::Exit() => process::exit(0),
         Command::Regs() => self.print_registers(),
         Command::Ins() => self.print_instruction(),
+        Command::Syms() => self.print_symbol_table(),
         Command::Help() => self.print_help(),
       }
     }
