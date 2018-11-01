@@ -1,4 +1,5 @@
 use io;
+use prettytable::{Cell, Row, Table};
 use process;
 use vm::instruction::Instruction;
 use vm::register_file::RegisterFile;
@@ -29,7 +30,7 @@ impl<'a> Debugger<'a> {
     buf.pop();
     match buf.as_ref() {
       "next" | "n" => Some(Command::Next()),
-      "exit" => Some(Command::Exit()),
+      "exit" | "q" => Some(Command::Exit()),
       "regs" | "r" => Some(Command::Regs()),
       "ins" | "i" => Some(Command::Ins()),
       "help" => Some(Command::Help()),
@@ -42,7 +43,23 @@ impl<'a> Debugger<'a> {
   }
 
   fn print_registers(&self) -> () {
-    println!("{:?}", self.machine.registers);
+    let mut table = Table::new();
+    // Add a row per time
+    table.add_row(row!["Register", "Value"]);
+    table.add_row(row!["R0", format!("{:#010x}", self.machine.registers.r0)]);
+    table.add_row(row!["R1", format!("{:#010x}", self.machine.registers.r1)]);
+    table.add_row(row!["R2", format!("{:#010x}", self.machine.registers.r2)]);
+    table.add_row(row!["R3", format!("{:#010x}", self.machine.registers.r3)]);
+    table.add_row(row!["R4", format!("{:#010x}", self.machine.registers.r4)]);
+    table.add_row(row!["R5", format!("{:#010x}", self.machine.registers.r0)]);
+    table.add_row(row!["SP", format!("{:#010x}", self.machine.registers.sp)]);
+    table.add_row(row!["FP", format!("{:#010x}", self.machine.registers.fp)]);
+    table.add_row(row!["PC", format!("{:#010x}", self.machine.registers.pc)]);
+    table.add_row(row!["IR", format!("{:#010x}", self.machine.registers.ir)]);
+    table.add_row(row!["TR", format!("{:#010x}", self.machine.registers.tr)]);
+    table.add_row(row!["SR", format!("{:#010x}", self.machine.registers.sr)]);
+    // Print the table to stdout
+    table.printstd();
   }
 
   fn print_instruction(&mut self) -> () {

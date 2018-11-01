@@ -2,6 +2,8 @@ extern crate byteorder;
 #[macro_use]
 extern crate num_derive;
 extern crate num_traits;
+#[macro_use]
+extern crate prettytable;
 
 use std::env;
 use std::fs::File;
