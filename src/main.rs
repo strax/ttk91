@@ -10,6 +10,8 @@ use std::io::prelude::*;
 use std::io::{Cursor, SeekFrom};
 use std::path::Path;
 use std::process;
+use vm::debugger::Debugger;
+use vm::Hypervisor;
 
 mod b91;
 mod vm;
@@ -42,6 +44,7 @@ fn run(f: &mut File) -> io::Result<()> {
     let object_module = b91::parser::parse(&data);
     let mut machine = vm::Machine::new(100);
     machine.load_object_module(&object_module);
-    machine.run();
+    let mut hypervisor = Debugger::new(&mut machine);
+    hypervisor.run();
     Ok(())
 }

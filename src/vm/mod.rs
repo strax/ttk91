@@ -2,6 +2,7 @@ use b91::*;
 use num_traits::FromPrimitive;
 use std::process;
 
+pub mod debugger;
 pub mod instruction;
 pub mod io;
 pub mod mmu;
@@ -16,6 +17,10 @@ use self::ops::*;
 use self::register_file::*;
 use self::supervisor::*;
 
+pub trait Hypervisor {
+  fn run(&mut self) -> ();
+}
+
 #[derive(Debug, FromPrimitive, Eq, PartialEq, Copy, Clone)]
 #[repr(u8)]
 pub enum AddressingMode {
@@ -28,6 +33,14 @@ pub enum AddressingMode {
 pub struct Machine {
   registers: Box<RegisterFile>,
   mmu: MMU,
+}
+
+impl Hypervisor for Machine {
+  fn run(&mut self) -> () {
+    while self.registers.pc <= self.registers.fp {
+      self.tick();
+    }
+  }
 }
 
 impl Machine {
@@ -55,13 +68,11 @@ impl Machine {
     self.registers.sp = object_module.data.end as u32;
   }
 
-  pub fn run(&mut self) -> () {
-    while self.registers.pc <= self.registers.fp {
-      // Fetch instruction
-      let instruction = Instruction::from_u32(self.mmu.read(self.registers.pc as usize));
-      self.registers.pc += 1;
-      self.execute(&instruction);
-    }
+  /// Executes a single tick of the CPU.
+  pub fn tick(&mut self) -> () {
+    let instruction = Instruction::from_u32(self.mmu.read(self.registers.pc as usize));
+    self.registers.pc += 1;
+    self.execute(&instruction);
   }
 
   fn execute(&mut self, instruction: &Instruction) -> () {
