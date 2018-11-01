@@ -29,10 +29,10 @@ impl<'a> Debugger<'a> {
     io::stdin().read_line(&mut buf).unwrap();
     buf.pop();
     match buf.as_ref() {
-      "next" | "n" => Some(Command::Next()),
-      "exit" | "q" => Some(Command::Exit()),
-      "regs" | "r" => Some(Command::Regs()),
-      "ins" | "i" => Some(Command::Ins()),
+      "continue" | "c" | "next" | "n" => Some(Command::Next()),
+      "exit" | "quit" | "q" => Some(Command::Exit()),
+      "registers" | "reg" | "r" => Some(Command::Regs()),
+      "instruction" | "ins" | "i" => Some(Command::Ins()),
       "help" => Some(Command::Help()),
       _ => None,
     }
