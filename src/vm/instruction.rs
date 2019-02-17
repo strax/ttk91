@@ -1,3 +1,5 @@
+use crate::vm;
+
 use vm::ops::Op;
 use vm::AddressingMode;
 use num_traits::FromPrimitive;

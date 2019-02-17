@@ -1,3 +1,5 @@
+use num_derive::{FromPrimitive};
+
 #[derive(Debug, FromPrimitive, Eq, PartialEq, Copy, Clone)]
 #[repr(u8)]
 pub enum Op {

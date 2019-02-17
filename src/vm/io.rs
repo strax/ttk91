@@ -1,4 +1,5 @@
 use std::io;
+use num_derive::{FromPrimitive};
 
 #[derive(Debug, FromPrimitive, Eq, PartialEq, Copy, Clone)]
 pub enum Device {

@@ -1,8 +1,5 @@
 extern crate byteorder;
 #[macro_use]
-extern crate num_derive;
-extern crate num_traits;
-#[macro_use]
 extern crate prettytable;
 
 use std::env;
@@ -14,6 +11,7 @@ use std::path::Path;
 use std::process;
 use vm::debugger::Debugger;
 use vm::Hypervisor;
+use crate::b91::ObjectModule;
 
 mod b91;
 mod vm;
@@ -31,14 +29,15 @@ fn main() -> io::Result<()> {
             eprintln!("No such file: {}", path.display());
             process::exit(1)
         }
-        Ok(mut f) => run(&mut f),
+        Ok(mut f) => {
+            let mut data: Vec<u8> = vec![];
+            f.read_to_end(&mut data)?;
+            run(&data)
+        },
     }
 }
 
-fn run(f: &mut File) -> io::Result<()> {
-    // Read program to memory
-    let mut data: Vec<u8> = vec![];
-    f.read_to_end(&mut data)?;
+fn run(data: &Vec<u8>) -> io::Result<()> {
     let mut memory = [0u32; 32768];
     // let op = ttk91::vm::next_op(&mut cursor)?;
     // ttk91::vm::eval(&mut vm, &data)
@@ -46,7 +45,6 @@ fn run(f: &mut File) -> io::Result<()> {
     let object_module = b91::parser::parse(&data);
     let mut machine = vm::Machine::new(100);
     machine.load_object_module(&object_module);
-    let mut hypervisor = Debugger::new(&mut machine, &object_module.symbol_table);
-    hypervisor.run();
+    &Debugger::new(&mut machine, &object_module.symbol_table).run();
     Ok(())
 }

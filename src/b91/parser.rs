@@ -2,7 +2,7 @@ use std::error;
 use std::io::{Cursor, Read, BufRead, Lines};
 use std::result;
 use std::collections::HashMap;
-use b91::{ObjectModule, CodeBlock, DataBlock, SymbolTable};
+use super::{ObjectModule, CodeBlock, DataBlock, SymbolTable};
 
 type Result<T> = result::Result<T, Box<error::Error>>;
 

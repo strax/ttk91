@@ -1,7 +1,9 @@
+use crate::{b91, vm};
+
 use b91::SymbolTable;
-use io;
+use std::io;
 use prettytable::{Cell, Row, Table};
-use process;
+use std::process;
 use vm::instruction::Instruction;
 use vm::register_file::RegisterFile;
 use vm::Hypervisor;
@@ -31,19 +33,19 @@ impl<'a> Debugger<'a> {
   }
 
   fn read_command(&self) -> Option<Command> {
-    eprint!("{}> ", self.machine.registers.pc);
+    eprint!("[{}] ", self.machine.registers.pc);
     let mut buf = String::new();
     io::stdin().read_line(&mut buf).unwrap();
     let mut segments = buf.split_whitespace();
-    let command = segments.next().unwrap();
+    let command = segments.next()?;
     let args = segments.next();
     match command {
       "continue" | "c" | "next" | "n" => Some(Command::Next()),
       "exit" | "quit" | "q" => Some(Command::Exit()),
       "var" | "v" => args.map(|x| Command::Var(String::from(x))),
-      "registers" | "reg" | "r" => Some(Command::Regs()),
+      "registers" | "regs" | "reg" | "r" => Some(Command::Regs()),
       "instruction" | "ins" | "i" => Some(Command::Ins()),
-      "symbols" | "sym" | "s" => Some(Command::Syms()),
+      "symbols" | "syms" | "sym" | "s" => Some(Command::Syms()),
       "help" => Some(Command::Help()),
       _ => None,
     }
@@ -55,8 +57,9 @@ impl<'a> Debugger<'a> {
 
   fn print_registers(&self) -> () {
     let mut table = Table::new();
+    table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
     // Add a row per time
-    table.add_row(row!["Register", "Value"]);
+    table.set_titles(row!["Register", "Value"]);
     table.add_row(row!["R0", format!("{:#010x}", self.machine.registers.r0)]);
     table.add_row(row!["R1", format!("{:#010x}", self.machine.registers.r1)]);
     table.add_row(row!["R2", format!("{:#010x}", self.machine.registers.r2)]);
@@ -70,16 +73,18 @@ impl<'a> Debugger<'a> {
     table.add_row(row!["TR", format!("{:#010x}", self.machine.registers.tr)]);
     table.add_row(row!["SR", format!("{:#010x}", self.machine.registers.sr)]);
     // Print the table to stdout
-    table.printstd();
+    table.print_tty(true);
   }
 
   fn print_symbol_table(&self) -> () {
     let mut table = Table::new();
+    table.set_format(*prettytable::format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+    table.set_titles(row!["Name", "Memory address"]);
     let symbol_table = self.symbol_table;
     for (key, value) in symbol_table {
       table.add_row(row![key, format!("{:#010x}", value)]);
     }
-    table.printstd();
+    table.print_tty(true);
   }
 
   fn print_symbol_value(&mut self, sym: String) -> () {
@@ -114,6 +119,7 @@ help          Show this help text
 
 impl<'a> Hypervisor for Debugger<'a> {
   fn run(&mut self) -> () {
+    eprintln!("Type 'help' to see available commands, 'exit' or CTRL+C to exit");
     loop {
       match self.next_command() {
         Command::Next() => self.machine.tick(),
