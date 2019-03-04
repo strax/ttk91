@@ -1,0 +1,12 @@
+[package]
+name = "compiler"
+version = "0.1.0"
+authors = ["Sami Kukkonen <sami@samikukkonen.fi>"]
+edition = "2018"
+
+[dependencies]
+combine = "3.6.7"
+
+[dependencies.nom]
+version = "4.2.1"
+features = ["std", "regexp", "regexp_macros", "verbose-errors"]
